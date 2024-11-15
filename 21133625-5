@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract LegalContract {
+    address public partyA;
+    address public partyB;
+    string public contractTerms; // Termos do contrato em texto
+    uint256 public contractAmount; // Valor do contrato em wei (1 ether = 10^18 wei)
+    bool public isExecuted; // Indica se o contrato foi executado
+
+    event ContractCreated(
+        address indexed partyA,
+        address indexed partyB,
+        string contractTerms,
+        uint256 contractAmount
+    );
+
+    event ContractExecuted(
+        address indexed executedBy,
+        uint256 timestamp
+    );
+
+    modifier onlyParties() {
+        require(
+            msg.sender == partyA || msg.sender == partyB,
+            "Apenas as partes envolvidas podem executar esta acao"
+        );
+        _;
+    }
+
+    constructor(
+        address _partyB,
+        string memory _contractTerms,
+        uint256 _contractAmount
+    ) {
+        partyA = msg.sender; // A parte que cria o contrato é a parte A
+        partyB = _partyB;
+        contractTerms = _contractTerms;
+        contractAmount = _contractAmount;
+        isExecuted = false;
+
+        emit ContractCreated(partyA, partyB, contractTerms, contractAmount);
+    }
+
+    function executeContract() public payable onlyParties {
+        require(!isExecuted, "Contrato ja foi executado");
+        require(
+            msg.sender == partyB,
+            "A parte B deve confirmar o contrato"
+        );
+        require(
+            msg.value == contractAmount,
+            "O valor transferido deve corresponder ao valor do contrato"
+        );
+
+        isExecuted = true;
+
+        // Transferir o valor para a parte A
+        payable(partyA).transfer(msg.value);
+
+        emit ContractExecuted(msg.sender, block.timestamp);
+    }
+}
